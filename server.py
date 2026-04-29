@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=BASE_DIR)
+app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64 MB
 DATA_FILE = os.path.join(BASE_DIR, 'data.json')
 PREP_STATE_FILE = os.path.join(BASE_DIR, 'prep_state.json')
 SKIP_SHEETS = {'EXEMPLE', 'Flipper', 'last stop'}
@@ -185,8 +186,17 @@ def get_data():
         return jsonify(json.load(f))
 
 
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'ok': False, 'error': 'File too large (max 64MB)'}), 413
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'ok': False, 'error': str(e)}), 500
+
 @app.route('/api/upload', methods=['POST'])
 def upload():
+    print('[upload] request received')
     if 'file' not in request.files:
         return jsonify({'ok': False, 'error': 'No file provided'}), 400
     try:
