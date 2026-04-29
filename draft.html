@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft Analyser Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808; --card: #111; --card2: #161616; --line: rgba(255,255,255,.06);
+  --text: #fff; --dim: #555; --dim2: #888; --blue: #5db0ff; --red: #ff4d4d; --win: #3ddc84;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{ height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Barlow Condensed',sans-serif; }
+
+::-webkit-scrollbar{ width:4px; height:4px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.1); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.2); }
+
+/* ── Layout ── */
+.layout{ display:grid; grid-template-columns:240px 1fr; gap:0; height:100%; }
+.sidebar{ background:var(--card); border-right:1px solid var(--line); overflow:hidden; display:flex; flex-direction:column; }
+.sidebar-header{
+  padding:12px 14px 10px;
+  font-size:.6rem; color:var(--dim); letter-spacing:3px; font-weight:800; text-transform:uppercase;
+  border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px;
+}
+.map-list{ flex:1; overflow-y:auto; padding:4px 0; }
+
+/* ── Sidebar 2-column grid ── */
+.map-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; padding:4px; }
+.map-item{
+  display:flex; gap:7px; align-items:center;
+  padding:6px 8px; cursor:pointer; transition:.12s;
+  border-radius:7px; border:1px solid transparent; min-width:0;
+}
+.map-item:hover{ background:rgba(255,255,255,.04); }
+.map-item.active{ background:rgba(93,176,255,.08); border-color:rgba(93,176,255,.25); }
+.map-icon{ width:30px; height:30px; border-radius:5px; object-fit:cover; flex-shrink:0; border:1px solid var(--line); }
+.map-info{ min-width:0; display:flex; flex-direction:column; gap:1px; }
+.map-name{ font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.2px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.map-meta{ display:flex; align-items:center; gap:4px; }
+.map-count{ font-size:.63rem; color:var(--dim); }
+.map-mode-icon{ width:13px; height:13px; object-fit:contain; opacity:.7; }
+
+/* ── Main area ── */
+.main{ display:flex; flex-direction:column; min-height:0; overflow:hidden; background:var(--bg); }
+
+/* ── Map top bar ── */
+.map-header-card{
+  display:none; align-items:center;
+  padding:0; border-bottom:1px solid var(--line);
+  flex-shrink:0; background:var(--card);
+  overflow:hidden; position:relative; height:120px;
+}
+.map-header-img{
+  width:100%; height:100%; object-fit:cover; object-position:center;
+  display:block; position:absolute; top:0; left:0;
+}
+.map-header-overlay{
+  position:relative; z-index:1; width:100%;
+  background:linear-gradient(to right, rgba(17,17,17,0.95) 0%, rgba(17,17,17,0.75) 55%, rgba(17,17,17,0.2) 100%);
+  padding:16px 24px;
+  display:flex; align-items:center; gap:16px; height:100%;
+}
+.map-header-mode{ width:46px; height:46px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 0 6px rgba(0,0,0,.8)); }
+.map-header-text{ display:flex; flex-direction:column; }
+.map-header-name{ font-size:2rem; font-weight:900; text-transform:uppercase; font-style:italic; letter-spacing:.5px; line-height:1; }
+.map-header-sub{ font-size:.8rem; color:var(--dim2); text-transform:uppercase; letter-spacing:1.5px; margin-top:5px; display:flex; align-items:center; gap:6px; }
+.map-header-mode-label{ color:var(--blue); font-weight:800; font-size:.85rem; }
+
+.nav-link {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 100;
+  background: var(--blue);
+  color: #000;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: opacity 0.2s;
+}
+.nav-link:hover { opacity: 0.8; }
+
+/* ── Scroll area — 2 columns filling width ── */
+.matches-scroll{
+  flex:1; overflow:auto;
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:14px;
+  padding:16px;
+  align-content:flex-start;
+}
+
+/* ── Match card ── */
+.match-card{
+  position:relative; width:100%;
+  background:var(--card);
+  border-radius:14px; padding:16px 16px 18px;
+  border:1px solid var(--line); transition:border-color .15s;
+}
+.match-card:hover{ border-color:rgba(255,255,255,.12); }
+
+.match-date{
+  font-size:.92rem; color:var(--dim2); font-weight:700;
+  text-transform:uppercase; letter-spacing:2px;
+  text-align:center; margin-bottom:12px;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.match-date::before,.match-date::after{ content:''; flex:1; height:1px; background:var(--line); max-width:40px; }
+
+.match-header{ display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:16px; }
+.team-container{ flex:1; display:flex; min-width:0; }
+.team-container.left{ justify-content:flex-end; }
+.team-container.right{ justify-content:flex-start; }
+.team-name{ font-size:1.4rem; font-weight:900; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.team-blue{ color:var(--blue); } .team-red{ color:var(--red); }
+
+.match-score{
+  font-size:1.3rem; font-weight:900;
+  background:var(--card2); border:1px solid var(--line);
+  padding:5px 16px; border-radius:50px;
+  display:flex; align-items:center; gap:2px; flex-shrink:0; letter-spacing:.5px;
+}
+.score-blue{color:var(--blue)} .score-red{color:var(--red)}
+.score-win{color:var(--win)} .score-loss{color:rgba(255,255,255,.4)}
+.score-sep{color:var(--dim);margin:0 4px;font-size:.8em}
+
+/* draft layout — map column stretches */
+.draft-container {
+  display: grid;
+  grid-template-columns: 48px 96px auto 96px 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.bans-stack{ display:flex; flex-direction:column; gap:6px; }
+.ban-slot{ width:48px; height:48px; border-radius:7px; overflow:hidden; border:1px solid #1e1e1e; filter:grayscale(1) brightness(.85); background:#000; }
+.ban-slot img{ width:100%; height:100%; object-fit:cover; }
+.picks-stack{ display:flex; flex-direction:column; gap:9px; }
+.pick-box{ position:relative; width:96px; aspect-ratio:1/1; border-radius:10px; overflow:hidden; border:2px solid #222; background:#000; }
+.pick-box img{ width:100%; height:100%; object-fit:cover; }
+.pick-tag{
+  position:absolute; bottom:0; width:100%;
+  background:rgba(0,0,0,.8); color:rgba(255,255,255,.9); font-size:.75rem; font-weight:900;
+  text-align:center; padding:4px 0; text-transform:uppercase; letter-spacing:1px;
+}
+.pick-box.blue-side{ border-color:rgba(93,176,255,.6); }
+.pick-box.red-side{ border-color:rgba(255,77,77,.6); }
+.map-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.map-preview img{
+  max-height:308px; max-width:100%;
+  width:auto; height:auto;
+  object-fit:contain; display:block;
+  border:2px solid rgba(255,255,255,.08); border-radius:10px;
+}
+
+.no-data{ display:flex; justify-content:center; align-items:center; height:200px; color:#333; font-weight:800; text-transform:uppercase; letter-spacing:1px; grid-column:1/-1; }
+
+/* Mode sections in sidebar */
+.mode-section{ padding:0; }
+.mode-section-header{
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px 7px;
+  font-size:.72rem; color:var(--dim2); letter-spacing:2px; font-weight:800; text-transform:uppercase;
+  border-bottom:1px solid var(--line);
+  margin-top:8px;
+}
+.mode-section-header img{ width:20px; height:20px; object-fit:contain; opacity:.85; }
+.mode-section-header .mode-count{ margin-left:auto; font-size:.62rem; color:var(--dim); font-weight:600; letter-spacing:1px; }
+.mode-section-header:first-child{ margin-top:0; }
+
+.load-btn-small {
+  margin-left: auto;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--line);
+  color: var(--dim2);
+  font-size: .65rem;
+  font-weight: 900;
+  border-radius: 5px;
+  padding: 0 8px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .15s;
+  flex-shrink: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.load-btn-small:hover{ background:rgba(255,255,255,.12); color:#fff; }
+
+/* ── Pretty/Ugly toggle ── */
+.view-toggle{
+  display:flex; align-items:center; gap:0;
+  background:rgba(255,255,255,.05); border:1px solid var(--line);
+  border-radius:6px; overflow:hidden; flex-shrink:0;
+}
+.view-toggle-btn{
+  font-size:.58rem; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;
+  padding:4px 7px; cursor:pointer; border:none; background:transparent;
+  color:var(--dim); transition:.12s; font-family:'Barlow Condensed',sans-serif;
+  line-height:1;
+}
+.view-toggle-btn:hover{ color:var(--dim2); background:rgba(255,255,255,.04); }
+.view-toggle-btn.active{ background:rgba(255,255,255,.1); color:#fff; }
+.view-toggle-btn.active.ugly-btn{ background:rgba(255,100,80,.15); color:#ff9980; }
+
+/* ── Ugly mode ── */
+.matches-scroll.ugly-scroll{
+  display:flex !important; flex-direction:column; gap:0;
+  padding:0; grid-template-columns:unset;
+}
+.ugly-match{
+  background:var(--card);
+  border-bottom:1px solid var(--line);
+  padding:4px 10px;
+  display:grid;
+  grid-template-columns: 72px 1px 140px 90px 140px 1px 1fr 1fr 1fr 1px 1fr 1fr 1fr 1px 1fr 1fr 1fr 1fr 1fr 1fr;
+  align-items:center; gap:4px;
+  font-family:'Barlow Condensed',sans-serif;
+  transition:background .1s;
+  width:100%;
+}
+.ugly-match:hover{ background:var(--card2); }
+.ugly-date-col{ font-size:.92rem; color:var(--dim2); font-weight:700; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ugly-team{ font-size:1.1rem; font-weight:900; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ugly-team.left { text-align:right; }
+.ugly-score-col{ font-size:1.2rem; font-weight:900; white-space:nowrap; padding:0 4px; text-align:center; }
+.ugly-vsep{ width:1px; background:rgba(255,255,255,.08); align-self:stretch; }
+.ugly-group{ display:flex; flex-direction:column; align-items:center; gap:2px; width:100%; }
+.ugly-group-label{ font-size:.58rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--dim); line-height:1; }
+.ugly-img{
+  width:100%; aspect-ratio:1/1; border-radius:8px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.3px; text-align:center; padding:2px;
+}
+.ugly-img img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:6px; }
+.ugly-img.ban{ background:#0a0a0a; border:1px solid #1c1c1c; filter:grayscale(1) brightness(.85); color:var(--dim); }
+.ugly-img.pick-b{ background:rgba(93,176,255,.1); border:2px solid rgba(93,176,255,.5); color:var(--blue); }
+.ugly-img.pick-r{ background:rgba(255,77,77,.1); border:2px solid rgba(255,77,77,.5); color:var(--red); }
+</style>
+</head>
+<body>
+  <a href="/prep" class="nav-link">Go to Preparer →</a>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div style="display:flex;align-items:center;gap:6px;flex:1">
+        <div class="view-toggle">
+          <button class="view-toggle-btn active" id="prettyBtn" onclick="setView('pretty')">Pretty</button>
+          <button class="view-toggle-btn ugly-btn" id="uglyBtn" onclick="setView('ugly')">Ugly</button>
+        </div>
+      </div>
+      <button class="load-btn-small" onclick="document.getElementById('fileInput').click()" title="Upload new file to server">Upload</button>
+    </div>
+    <div class="map-list" id="mapList">
+      <div style="padding:16px;color:#222;font-size:.7rem;text-transform:uppercase;letter-spacing:1px">Loading…</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="map-header-card" id="mapHeaderCard">
+      <img class="map-header-img" id="mapHeaderImg" src="" alt="" onerror="this.style.display='none'">
+      <div class="map-header-overlay">
+        <img class="map-header-mode" id="mapHeaderModeIcon" src="" alt="" style="display:none" onerror="this.style.display='none'">
+        <div class="map-header-text">
+          <div class="map-header-name" id="mapHeaderName">—</div>
+          <div class="map-header-sub">
+            <span class="map-header-mode-label" id="mapHeaderModeLabel"></span>
+            <span id="mapHeaderMatches">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="matches-scroll" id="matchesScroll"></div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+
+<script>
+const MAP_MODES = {
+  'Shooting Star':'bounty','Snake Prairie':'bounty','Layer Cake':'bounty','Dry Season':'bounty','Dry Sason':'bounty',
+  'Super Beach':'brawl_ball','Pinhole Punt':'brawl_ball','Center Stage':'brawl_ball','Triple Dribble':'brawl_ball','Sunny Soccer':'brawl_ball','Sneaky Fields':'brawl_ball','Pinball Dreams':'brawl_ball',
+  'Hard Rock Mine':'gem_grab','Double Swoosh':'gem_grab','Deathcap Trap':'gem_grab','Undermine':'gem_grab','Gem Fort':'gem_grab',
+  'Safe Zone':'heist','Kaboom Canyon':'heist','Bridge Too Far':'heist','Bridge To':'heist','Hot Potato':'heist','Pit Stop':'heist',
+  'Open_Business':'hot_zone','Dueling Beetles':'hot_zone','Dueling B':'hot_zone','Ring of Fire':'hot_zone',
+  'Goldarm Gulch':'knockout','Belles Rock':'knockout','Out in the Open':'knockout','Out in Th':'knockout','Hideout':'knockout',
+};
+const MODE_LABELS = { bounty:'Bounty', brawl_ball:'Brawl Ball', gem_grab:'Gem Grab', heist:'Heist', hot_zone:'Hot Zone', knockout:'Knockout' };
+
+function normKey(n){ return (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,''); }
+const MODE_LOOKUP = {};
+for (const [k,v] of Object.entries(MAP_MODES)){ MODE_LOOKUP[normKey(k)] = v; }
+
+function getModeKey(mapName){
+  const nk = normKey(mapName);
+  if(MODE_LOOKUP[nk]) return MODE_LOOKUP[nk];
+  for(const [k,v] of Object.entries(MODE_LOOKUP)){
+    if(k.startsWith(nk) || nk.startsWith(k.slice(0,Math.min(k.length,8)))) return v;
+  }
+  return null;
+}
+function getModeIcon(mapName)  { const k=getModeKey(mapName); return k ? `modes/${k}.png` : ''; }
+function getModeLabel(mapName) { const k=getModeKey(mapName); return k ? (MODE_LABELS[k]||k) : ''; }
+
+let DATA = [];
+let VIEW_MODE = 'pretty';
+let CURRENT_MAP_IDX = -1;
+
+function norm(n){ return (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+function bImg(n){ return n?'brawlers/'+norm(n)+'.png':''; }
+function mImg(n){ return 'maps/'+norm(n)+'.png'; }
+
+function setView(mode){
+  VIEW_MODE = mode;
+  document.getElementById('prettyBtn').classList.toggle('active', mode==='pretty');
+  document.getElementById('uglyBtn').classList.toggle('active', mode==='ugly');
+  document.getElementById('matchesScroll').classList.toggle('ugly-scroll', mode==='ugly');
+  if(CURRENT_MAP_IDX >= 0) selectMap(CURRENT_MAP_IDX);
+}
+
+function uglyImg(name, cls){
+  if(!name) return `<div class="ugly-img ${cls}" style="opacity:.12">—</div>`;
+  const safe = name.replace(/'/g,"\\'");
+  return `<div class="ugly-img ${cls}"><img src="${bImg(name)}" onerror="this.style.display='none';this.closest('.ugly-img').textContent='${safe.toUpperCase()}'" title="${name}"></div>`;
+}
+function uglyGroup(label, name, cls){
+  return `<div class="ugly-group">${uglyImg(name,cls)}<div class="ugly-group-label">${label}</div></div>`;
+}
+
+function renderScore(m){
+  const sb=String(m.score_blue||''),sr=String(m.score_red||'');
+  const vb=sb!==''?sb:'0',vr=sr!==''?sr:'0';
+  const pb=parseFloat(vb),pr=parseFloat(vr);
+  let bc='score-loss',rc='score-loss';
+  if(!isNaN(pb)&&!isNaN(pr)){if(pb>pr) bc='score-win'; else if(pr>pb) rc='score-win';}
+  return `<span class="${bc}">${vb}</span><span class="score-sep">-</span><span class="${rc}">${vr}</span>`;
+}
+function renderPick(name,side,order){
+  if(!name) return `<div class="pick-box" style="opacity:.05"></div>`;
+  return `<div class="pick-box ${side}-side"><img src="${bImg(name)}" onerror="this.style.opacity='0'"><div class="pick-tag">PICK ${order}</div></div>`;
+}
+function renderBan(name){
+  if(!name) return `<div class="ban-slot"></div>`;
+  return `<div class="ban-slot"><img src="${bImg(name)}" title="${name}" onerror="this.style.opacity='0'"></div>`;
+}
+function renderMatch(m,mapName){
+  const dateLine=m.date?`<div class="match-date">${m.date}</div>`:'';
+  return `<div class="match-card">
+    ${dateLine}
+    <div class="match-header">
+      <div class="team-container left"><div class="team-name team-blue">${m.blue}</div></div>
+      <div class="match-score">${renderScore(m)}</div>
+      <div class="team-container right"><div class="team-name team-red">${m.red}</div></div>
+    </div>
+    <div class="draft-container">
+      <div class="bans-stack">${renderBan(m.ban2_1)}${renderBan(m.ban2_2)}${renderBan(m.ban2_3)}</div>
+      <div class="picks-stack">${renderPick(m.pick2,'blue','2')}${renderPick(m.pick3,'blue','3')}${renderPick(m.pick6,'blue','6')}</div>
+      <div class="map-preview"><img src="${mImg(mapName)}" onerror="this.style.opacity='.1'"></div>
+      <div class="picks-stack">${renderPick(m.pick1,'red','1')}${renderPick(m.pick4,'red','4')}${renderPick(m.pick5,'red','5')}</div>
+      <div class="bans-stack">${renderBan(m.ban1_1)}${renderBan(m.ban1_2)}${renderBan(m.ban1_3)}</div>
+    </div>
+  </div>`;
+}
+function renderUglyMatch(m){
+  const sb=String(m.score_blue||''), sr=String(m.score_red||'');
+  const vb=sb!==''?sb:'?', vr=sr!==''?sr:'?';
+  const pb=parseFloat(vb), pr=parseFloat(vr);
+  let bc='', rc='';
+  if(!isNaN(pb)&&!isNaN(pr)){ if(pb>pr) bc='color:var(--win)'; else if(pr>pb) rc='color:var(--win)'; }
+  return `<div class="ugly-match">
+    <div class="ugly-date-col">${m.date||''}</div>
+    <div class="ugly-vsep"></div>
+    <div class="ugly-team team-blue left">${m.blue}</div>
+    <div class="ugly-score-col"><span style="${bc}">${vb}</span><span style="color:var(--dim);margin:0 2px;font-size:.8em">–</span><span style="${rc}">${vr}</span></div>
+    <div class="ugly-team team-red">${m.red}</div>
+    <div class="ugly-vsep"></div>
+    ${uglyGroup('BAN1',m.ban2_1,'ban')}${uglyGroup('BAN2',m.ban2_2,'ban')}${uglyGroup('BAN3',m.ban2_3,'ban')}
+    <div class="ugly-vsep"></div>
+    ${uglyGroup('BAN1',m.ban1_1,'ban')}${uglyGroup('BAN2',m.ban1_2,'ban')}${uglyGroup('BAN3',m.ban1_3,'ban')}
+    <div class="ugly-vsep"></div>
+    ${uglyGroup('Pick1',m.pick1,'pick-r')}${uglyGroup('Pick2',m.pick2,'pick-b')}${uglyGroup('Pick3',m.pick3,'pick-b')}${uglyGroup('Pick4',m.pick4,'pick-r')}${uglyGroup('Pick5',m.pick5,'pick-r')}${uglyGroup('Pick6',m.pick6,'pick-b')}
+  </div>`;
+}
+
+function buildSidebar(){
+  const modeOrder = ['knockout','gem_grab','brawl_ball','bounty','hot_zone','heist'];
+  const groups = {};
+  const ungrouped = [];
+  DATA.forEach((entry, i) => {
+    const k = getModeKey(entry.map);
+    if(k){ if(!groups[k]) groups[k]=[]; groups[k].push({entry,i}); }
+    else { ungrouped.push({entry,i}); }
+  });
+  const container = document.createElement('div');
+  const renderItem = ({entry,i}) => {
+    const modeIcon=getModeIcon(entry.map);
+    const modeIconHtml=modeIcon?`<img class="map-mode-icon" src="${modeIcon}" onerror="this.style.display='none'">`:'';
+    const el = document.createElement('div');
+    el.className='map-item'; el.dataset.idx=i;
+    el.onclick=()=>selectMap(i);
+    el.innerHTML=`<img class="map-icon" src="${mImg(entry.map)}" onerror="this.style.display='none'">
+      <div class="map-info">
+        <div class="map-name">${entry.map}</div>
+        <div class="map-meta">${modeIconHtml}<span class="map-count">${entry.matches.length} match${entry.matches.length!==1?'es':''}</span></div>
+      </div>`;
+    return el;
+  };
+  const allModes = [...modeOrder, ...Object.keys(groups).filter(k=>!modeOrder.includes(k))];
+  allModes.forEach(modeKey => {
+    if(!groups[modeKey]||!groups[modeKey].length) return;
+    const label = MODE_LABELS[modeKey]||modeKey;
+    const icon = `modes/${modeKey}.png`;
+    const totalMatches = groups[modeKey].reduce((s,{entry})=>s+entry.matches.length,0);
+    const secHeader = document.createElement('div');
+    secHeader.className='mode-section-header';
+    secHeader.innerHTML=`<img src="${icon}" onerror="this.style.display='none'">${label}<span class="mode-count">${totalMatches} match${totalMatches!==1?'es':''}</span>`;
+    container.appendChild(secHeader);
+    const grid = document.createElement('div');
+    grid.className='map-grid';
+    groups[modeKey].forEach(item => grid.appendChild(renderItem(item)));
+    container.appendChild(grid);
+  });
+  if(ungrouped.length){
+    const secHeader = document.createElement('div');
+    secHeader.className='mode-section-header';
+    secHeader.innerHTML=`Other`;
+    container.appendChild(secHeader);
+    const grid = document.createElement('div');
+    grid.className='map-grid';
+    ungrouped.forEach(item => grid.appendChild(renderItem(item)));
+    container.appendChild(grid);
+  }
+  const mapList = document.getElementById('mapList');
+  mapList.innerHTML='';
+  mapList.appendChild(container);
+}
+
+function selectMap(idx){
+  CURRENT_MAP_IDX = idx;
+  document.querySelectorAll('.map-item').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.idx)===idx));
+  const entry=DATA[idx];
+  const hdr=document.getElementById('mapHeaderCard');
+  hdr.style.display='flex';
+  const img=document.getElementById('mapHeaderImg');
+  img.src=mImg(entry.map); img.style.display='';
+  const modeIconEl=document.getElementById('mapHeaderModeIcon');
+  const modeIcon=getModeIcon(entry.map);
+  if(modeIcon){modeIconEl.src=modeIcon;modeIconEl.style.display='';}
+  else{modeIconEl.style.display='none';}
+  const modeLabel=getModeLabel(entry.map);
+  document.getElementById('mapHeaderModeLabel').textContent=modeLabel?modeLabel+' ·':'';
+  document.getElementById('mapHeaderName').textContent=entry.map;
+  document.getElementById('mapHeaderMatches').textContent=entry.matches.length+' Match'+(entry.matches.length!==1?'es':'');
+  const renderFn = VIEW_MODE==='ugly' ? (m)=>renderUglyMatch(m) : (m)=>renderMatch(m,entry.map);
+  document.getElementById('matchesScroll').innerHTML=entry.matches.map(renderFn).join('');
+}
+
+async function loadData(){
+  try {
+    const res = await fetch('/api/data');
+    DATA = await res.json();
+    if(DATA.length){
+      buildSidebar();
+      selectMap(0);
+    } else {
+      document.getElementById('mapList').innerHTML='<div style="padding:16px;color:#333;font-size:.7rem;text-transform:uppercase;letter-spacing:1px">No data — upload a file</div>';
+    }
+  } catch(err) {
+    document.getElementById('mapList').innerHTML='<div style="padding:16px;color:var(--red);font-size:.7rem;text-transform:uppercase;letter-spacing:1px">Failed to connect to server</div>';
+  }
+}
+
+document.getElementById('fileInput').addEventListener('change', async function(){
+  const file = this.files[0];
+  if(!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  document.getElementById('mapList').innerHTML='<div style="padding:16px;color:var(--dim);font-size:.7rem;text-transform:uppercase;letter-spacing:1px">Uploading…</div>';
+  try {
+    const res = await fetch('/api/upload', { method:'POST', body:formData });
+    const result = await res.json();
+    if(result.ok){
+      CURRENT_MAP_IDX = -1;
+      await loadData();
+    } else {
+      alert('Upload failed: ' + result.error);
+      await loadData();
+    }
+  } catch(err) {
+    alert('Upload error: ' + err.message);
+    await loadData();
+  }
+  this.value = '';
+});
+
+window.addEventListener('load', loadData);
+</script>
+</body>
+</html>
