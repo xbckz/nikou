@@ -7,6 +7,7 @@ from openpyxl import load_workbook
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=BASE_DIR)
 DATA_FILE = os.path.join(BASE_DIR, 'data.json')
+PREP_STATE_FILE = os.path.join(BASE_DIR, 'prep_state.json')
 SKIP_SHEETS = {'EXEMPLE', 'Flipper', 'last stop'}
 
 MAP_MODES = {
@@ -198,6 +199,22 @@ def upload():
     except Exception as e:
         print(f'[upload error] {e}')
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/api/prep-state', methods=['GET'])
+def get_prep_state():
+    if not os.path.exists(PREP_STATE_FILE):
+        return jsonify({})
+    with open(PREP_STATE_FILE) as f:
+        return jsonify(json.load(f))
+
+
+@app.route('/api/prep-state', methods=['POST'])
+def save_prep_state():
+    data = request.get_json()
+    with open(PREP_STATE_FILE, 'w') as f:
+        json.dump(data, f)
+    return jsonify({'ok': True})
 
 
 @app.route('/prep')

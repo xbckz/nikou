@@ -362,7 +362,7 @@ function toggleFirstPick() {
     state.firstPick = state.firstPick === 'blue' ? 'red' : 'blue';
     document.getElementById('coinImg').src = state.firstPick === 'blue' ? '/blue.png' : '/red.png';
     if (state.selectedMap) loadMapState(state.selectedMode, state.selectedMap, state.firstPick);
-    renderDraftGrid();
+    saveToServer(); renderDraftGrid();
 }
 
 function buildSidebar() {
@@ -400,6 +400,7 @@ function selectMap(mode, map) {
     saveCurrentMapState();
     state.selectedMode = mode; state.selectedMap = map;
     loadMapState(mode, map, state.firstPick);
+    saveToServer();
     document.querySelectorAll('.map-item').forEach(el =>
         el.classList.toggle('active', el.dataset.mode === mode && el.dataset.map === map));
     const imgSlug = map.toLowerCase().replace(/ /g,'_').replace(/-/g,'_');
@@ -438,10 +439,9 @@ function renderGlobalBans() {
     });
 }
 
-function removeGlobalBan(idx) { state.globalBans[idx] = null; renderGlobalBans(); }
+function removeGlobalBan(idx) { state.globalBans[idx] = null; saveToServer(); renderGlobalBans(); }
 
 function renderDraftGrid() {
-    saveToStorage();
     renderGlobalBans();
     const colLeft = document.getElementById('draftColLeft');
     const colRight = document.getElementById('draftColRight');
@@ -530,17 +530,10 @@ function renderPickerGrid(query) {
     const grid = document.getElementById('pickerGrid');
     grid.innerHTML = '';
     const q = query.toLowerCase();
-    const used = new Set();
-    state.globalBans.forEach(b => { if(b) used.add(b); });
-    state.boxes.forEach(box => {
-        if (box.main) used.add(box.main);
-        box.picks.forEach(b => { if(b) used.add(b); });
-        box.responses.forEach(b => { if(b) used.add(b); });
-    });
     ALL_BRAWLERS.forEach(name => {
         if (q && !name.toLowerCase().includes(q)) return;
         const item = document.createElement('div');
-        item.className = 'picker-item' + (used.has(name) ? ' in-use' : '');
+        item.className = 'picker-item';
         item.innerHTML = `<img src="/static/images/brawlers/${norm(name)}.png" title="${name}" onerror="this.style.opacity='.2'">`;
         item.onclick = () => pickBrawler(name);
         grid.appendChild(item);
@@ -556,7 +549,7 @@ function pickBrawler(name) {
         state.globalBans[activeSlotIdx] = name;
         const nextEmpty = state.globalBans.indexOf(null);
         if (nextEmpty !== -1) state.activeSlotIdx = nextEmpty;
-        closePicker(); renderDraftGrid(); return;
+        saveToServer(); closePicker(); renderDraftGrid(); return;
     }
     const box = state.boxes[activeBox];
     if (activeSlotType === 'main') {
@@ -571,7 +564,7 @@ function pickBrawler(name) {
         const nextEmpty = box.responses.indexOf(null);
         if (nextEmpty !== -1) state.activeSlotIdx = nextEmpty;
     }
-    closePicker(); renderDraftGrid();
+    saveToServer(); closePicker(); renderDraftGrid();
 }
 
 function removeSlot(boxIdx, slotType, slotIdx) {
@@ -579,29 +572,37 @@ function removeSlot(boxIdx, slotType, slotIdx) {
     if (slotType === 'main') box.main = null;
     else if (slotType === 'pick') box.picks[slotIdx] = null;
     else box.responses[slotIdx] = null;
-    renderDraftGrid();
+    saveToServer(); renderDraftGrid();
 }
 
 function norm(n) { return n.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
 
-function saveToStorage() {
-    try {
-        localStorage.setItem('prepState', JSON.stringify({
-            firstPick: state.firstPick,
-            selectedMode: state.selectedMode,
-            selectedMap: state.selectedMap,
-            globalBans: state.globalBans,
-            boxes: state.boxes,
-            mapStates: state.mapStates
-        }));
-    } catch(e) {}
+let saveTimer = null;
+function saveToServer() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+        try {
+            await fetch('/api/prep-state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstPick: state.firstPick,
+                    selectedMode: state.selectedMode,
+                    selectedMap: state.selectedMap,
+                    globalBans: state.globalBans,
+                    boxes: state.boxes,
+                    mapStates: state.mapStates
+                })
+            });
+        } catch(e) {}
+    }, 500);
 }
 
-function loadFromStorage() {
+async function loadFromServer() {
     try {
-        const raw = localStorage.getItem('prepState');
-        if (!raw) return;
-        const d = JSON.parse(raw);
+        const res = await fetch('/api/prep-state');
+        const d = await res.json();
+        if (!d || !Object.keys(d).length) return;
         state.firstPick = d.firstPick || 'blue';
         state.selectedMode = d.selectedMode || '';
         state.selectedMap = d.selectedMap || '';
@@ -611,8 +612,8 @@ function loadFromStorage() {
     } catch(e) {}
 }
 
-window.onload = () => {
-    loadFromStorage();
+window.onload = async () => {
+    await loadFromServer();
     buildSidebar();
     document.getElementById('coinImg').src = state.firstPick === 'blue' ? '/blue.png' : '/red.png';
     if (state.selectedMap) {
