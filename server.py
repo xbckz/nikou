@@ -7,8 +7,9 @@ from openpyxl import load_workbook
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=BASE_DIR)
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64 MB
-DATA_FILE = os.path.join(BASE_DIR, 'data.json')
-PREP_STATE_FILE = os.path.join(BASE_DIR, 'prep_state.json')
+DATA_DIR = '/tmp' if os.environ.get('RENDER') else BASE_DIR
+DATA_FILE = os.path.join(DATA_DIR, 'data.json')
+PREP_STATE_FILE = os.path.join(DATA_DIR, 'prep_state.json')
 SKIP_SHEETS = {'EXEMPLE', 'Flipper', 'last stop'}
 
 MAP_MODES = {
