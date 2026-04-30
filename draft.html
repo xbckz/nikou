@@ -203,6 +203,36 @@ html,body{ height:100%; overflow:hidden; background:var(--bg); color:var(--text)
 }
 .load-btn-small:hover{ background:rgba(255,255,255,.12); color:#fff; }
 
+/* ── Date filter bar ── */
+.date-filter-bar{
+  display:flex; align-items:center; gap:6px;
+  padding:7px 10px; border-bottom:1px solid var(--line);
+  background:var(--card); flex-shrink:0;
+}
+.date-input{
+  flex:1; min-width:0;
+  background:#000; border:1px solid var(--line);
+  color:#fff; padding:3px 8px; border-radius:5px;
+  font-size:.72rem; font-weight:700; font-family:'Barlow Condensed',sans-serif;
+  cursor:pointer; height:24px;
+  color-scheme: dark;
+}
+.date-input:focus{ outline:none; border-color:rgba(93,176,255,.4); }
+.date-clear-btn{
+  background:rgba(255,255,255,.06); border:1px solid var(--line);
+  color:var(--dim2); font-size:.65rem; font-weight:900;
+  border-radius:5px; padding:0 8px; height:24px;
+  cursor:pointer; font-family:'Barlow Condensed',sans-serif;
+  text-transform:uppercase; letter-spacing:1px; transition:.15s; flex-shrink:0;
+  display:none;
+}
+.date-clear-btn.visible{ display:flex; align-items:center; justify-content:center; }
+.date-clear-btn:hover{ background:rgba(255,77,77,.15); border-color:rgba(255,77,77,.3); color:var(--red); }
+.date-filter-label{
+  font-size:.58rem; font-weight:900; text-transform:uppercase; letter-spacing:1.5px;
+  color:var(--dim); flex-shrink:0;
+}
+
 /* ── Pretty/Ugly toggle ── */
 .view-toggle{
   display:flex; align-items:center; gap:0;
@@ -266,6 +296,11 @@ html,body{ height:100%; overflow:hidden; background:var(--bg); color:var(--text)
         </div>
       </div>
       <button class="load-btn-small" onclick="document.getElementById('fileInput').click()" title="Upload new file to server">Upload</button>
+    </div>
+    <div class="date-filter-bar">
+      <span class="date-filter-label">Day</span>
+      <input type="date" class="date-input" id="dateFilter" oninput="applyDateFilter()">
+      <button class="date-clear-btn" id="dateClearBtn" onclick="clearDateFilter()">✕ Clear</button>
     </div>
     <div class="map-list" id="mapList">
       <div style="padding:16px;color:#222;font-size:.7rem;text-transform:uppercase;letter-spacing:1px">Loading…</div>
@@ -507,6 +542,90 @@ document.getElementById('fileInput').addEventListener('change', async function()
   }
   this.value = '';
 });
+
+
+let ACTIVE_DATE = null;
+
+// Convert any date string to a normalised yyyy-mm-dd for comparison
+function normDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  // Already ISO yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // dd/mm/yyyy or dd.mm.yyyy or dd-mm-yyyy
+  let m = s.match(/^(\d{1,2})[\.\/\-](\d{1,2})[\.\/\-](\d{4})$/);
+  if (m) {
+    const [, d, mo, y] = m;
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // mm/dd/yyyy fallback — try JS Date
+  const d = new Date(s);
+  if (!isNaN(d)) return d.toISOString().slice(0,10);
+  return s; // give up, keep raw for loose match
+}
+
+function applyDateFilter() {
+  const val = document.getElementById('dateFilter').value; // yyyy-mm-dd
+  ACTIVE_DATE = val || null;
+  document.getElementById('dateClearBtn').classList.toggle('visible', !!val);
+
+  if (!ACTIVE_DATE) {
+    buildSidebar();
+    if (CURRENT_MAP_IDX >= 0) selectMap(CURRENT_MAP_IDX);
+    return;
+  }
+
+  // Gather all matches across all maps whose normalised date matches
+  const allMatches = [];
+  DATA.forEach(entry => {
+    entry.matches.forEach(m => {
+      if (normDate(m.date) === ACTIVE_DATE) {
+        allMatches.push({ match: m, map: entry.map });
+      }
+    });
+  });
+
+  // Update header
+  const hdr = document.getElementById('mapHeaderCard');
+  hdr.style.display = 'flex';
+  document.getElementById('mapHeaderImg').style.display = 'none';
+  document.getElementById('mapHeaderModeIcon').style.display = 'none';
+  document.getElementById('mapHeaderModeLabel').textContent = '';
+  const [yr, mo, dy] = ACTIVE_DATE.split('-');
+  const nice = new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy))
+    .toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  document.getElementById('mapHeaderName').textContent = nice;
+  document.getElementById('mapHeaderMatches').textContent =
+    allMatches.length + ' Match' + (allMatches.length !== 1 ? 'es' : '');
+
+  CURRENT_MAP_IDX = -1;
+  document.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
+
+  const scroll = document.getElementById('matchesScroll');
+  if (!allMatches.length) {
+    // Debug: show what dates actually exist in the data
+    const sample = [];
+    DATA.forEach(e => e.matches.slice(0,2).forEach(m => { if(m.date && sample.length<6) sample.push(m.date); }));
+    scroll.innerHTML = `<div class="no-data" style="flex-direction:column;gap:8px">
+      <span>No matches for this date</span>
+      <span style="font-size:.6rem;color:#444">Dates in data look like: ${sample.join(', ')||'(none found)'}</span>
+    </div>`;
+    return;
+  }
+
+  if (VIEW_MODE === 'ugly') {
+    scroll.classList.add('ugly-scroll');
+    scroll.innerHTML = allMatches.map(({match:m}) => renderUglyMatch(m)).join('');
+  } else {
+    scroll.classList.remove('ugly-scroll');
+    scroll.innerHTML = allMatches.map(({match:m, map}) => renderMatch(m, map)).join('');
+  }
+}
+
+function clearDateFilter() {
+  document.getElementById('dateFilter').value = '';
+  applyDateFilter();
+}
 
 window.addEventListener('load', loadData);
 </script>
