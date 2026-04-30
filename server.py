@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request, send_from_directory, render_template
-import json, os, io
+from flask import Flask, jsonify, request, send_from_directory, render_template, render_template_string, session, redirect, url_for
+from functools import wraps
+import json, os, io, secrets
 from datetime import datetime
 from collections import defaultdict
 from openpyxl import load_workbook
@@ -7,10 +8,61 @@ from openpyxl import load_workbook
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=BASE_DIR)
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64 MB
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'nikou')
 DATA_DIR = '/tmp' if os.environ.get('RENDER') else BASE_DIR
 DATA_FILE = os.path.join(DATA_DIR, 'data.json')
 PREP_STATE_FILE = os.path.join(DATA_DIR, 'prep_state.json')
 SKIP_SHEETS = {'EXEMPLE', 'Flipper', 'last stop'}
+
+LOGIN_HTML = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Login</title>
+<style>
+  body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f1923;font-family:sans-serif}
+  .box{background:#1a2634;padding:2.5rem 3rem;border-radius:12px;box-shadow:0 4px 24px #0008;text-align:center;min-width:280px}
+  h2{color:#fff;margin:0 0 1.5rem;font-size:1.4rem;letter-spacing:.05em}
+  input{width:100%;box-sizing:border-box;padding:.7rem 1rem;border:1px solid #304057;border-radius:8px;background:#0f1923;color:#fff;font-size:1rem;margin-bottom:1rem;outline:none}
+  input:focus{border-color:#4a90e2}
+  button{width:100%;padding:.75rem;background:#4a90e2;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600}
+  button:hover{background:#357abd}
+  .err{color:#e25555;margin-bottom:.75rem;font-size:.9rem}
+</style></head>
+<body><div class="box">
+  <h2>nikou</h2>
+  {% if error %}<div class="err">Wrong password</div>{% endif %}
+  <form method="post">
+    <input type="password" name="password" placeholder="Password" autofocus>
+    <button type="submit">Enter</button>
+  </form>
+</div></body></html>'''
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = False
+    if request.method == 'POST':
+        if request.form.get('password') == SITE_PASSWORD:
+            session['logged_in'] = True
+            next_url = request.args.get('next') or '/'
+            return redirect(next_url)
+        error = True
+    return render_template_string(LOGIN_HTML, error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 
 MAP_MODES = {
     'shooting star': 'Bounty', 'snake prairie': 'Bounty', 'layer cake': 'Bounty',
@@ -173,6 +225,7 @@ def parse_workbook(wb):
 # ── Routes ──────────────────────────────────────────────────────────────────
 
 @app.route('/static/images/<path:path>')
+@login_required
 def serve_images(path):
     response = send_from_directory(BASE_DIR, path)
     response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
@@ -180,6 +233,7 @@ def serve_images(path):
 
 
 @app.route('/api/data')
+@login_required
 def get_data():
     if not os.path.exists(DATA_FILE):
         return jsonify([])
@@ -196,6 +250,7 @@ def server_error(e):
     return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/api/upload', methods=['POST'])
+@login_required
 def upload():
     print('[upload] request received')
     if 'file' not in request.files:
@@ -213,6 +268,7 @@ def upload():
 
 
 @app.route('/api/prep-state', methods=['GET'])
+@login_required
 def get_prep_state():
     if not os.path.exists(PREP_STATE_FILE):
         return jsonify({})
@@ -221,6 +277,7 @@ def get_prep_state():
 
 
 @app.route('/api/prep-state', methods=['POST'])
+@login_required
 def save_prep_state():
     data = request.get_json()
     with open(PREP_STATE_FILE, 'w') as f:
@@ -229,6 +286,7 @@ def save_prep_state():
 
 
 @app.route('/prep')
+@login_required
 def prep():
     all_brawlers, maps_by_mode, meta_scores, synergy_data, matchup_data = compute_stats()
     return render_template('prep.html',
@@ -244,6 +302,7 @@ IMAGE_DIRS = ('brawlers/', 'maps/', 'modes/')
 
 @app.route('/', defaults={'path': 'draft.html'})
 @app.route('/<path:path>')
+@login_required
 def serve_static(path):
     response = send_from_directory(BASE_DIR, path)
     if path.startswith(IMAGE_DIRS):
