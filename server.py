@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=BASE_DIR)
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64 MB
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'nikou')
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'nikouisgay')
 DATA_DIR = '/tmp' if os.environ.get('RENDER') else BASE_DIR
 DATA_FILE = os.path.join(DATA_DIR, 'data.json')
 PREP_STATE_FILE = os.path.join(DATA_DIR, 'prep_state.json')
