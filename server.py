@@ -300,6 +300,10 @@ def prep():
 
 IMAGE_DIRS = ('brawlers/', 'maps/', 'modes/')
 
+@app.route('/favicon.png')
+def favicon():
+    return send_from_directory(BASE_DIR, 'favicon.png')
+
 @app.route('/', defaults={'path': 'draft.html'})
 @app.route('/<path:path>')
 @login_required
