@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Draft Analyser Pro</title>
+<title>Draft Analyser</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -155,6 +155,18 @@ html,body{ height:100%; overflow:hidden; background:var(--bg); color:var(--text)
 }
 .pick-box.blue-side{ border-color:rgba(93,176,255,.6); }
 .pick-box.red-side{ border-color:rgba(255,77,77,.6); }
+.pick-fallback{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:.6rem; font-weight:900; text-transform:uppercase; letter-spacing:.5px;
+  color:rgba(255,255,255,.7); text-align:center; padding:4px; line-height:1.2;
+  word-break:break-word;
+}
+.ban-fallback{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  font-size:.5rem; font-weight:900; text-transform:uppercase; letter-spacing:.5px;
+  color:rgba(255,255,255,.45); text-align:center; padding:2px; line-height:1.2;
+  word-break:break-word;
+}
 .map-preview {
   display: flex;
   justify-content: center;
@@ -388,11 +400,13 @@ function renderScore(m){
 }
 function renderPick(name,side,order){
   if(!name) return `<div class="pick-box" style="opacity:.05"></div>`;
-  return `<div class="pick-box ${side}-side"><img src="${bImg(name)}" onerror="this.style.opacity='0'"><div class="pick-tag">PICK ${order}</div></div>`;
+  const safe = name.replace(/'/g,"\\'");
+  return `<div class="pick-box ${side}-side"><img src="${bImg(name)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'pick-fallback\\'>${safe.toUpperCase()}</div>')"><div class="pick-tag">PICK ${order}</div></div>`;
 }
 function renderBan(name){
   if(!name) return `<div class="ban-slot"></div>`;
-  return `<div class="ban-slot"><img src="${bImg(name)}" title="${name}" onerror="this.style.opacity='0'"></div>`;
+  const safe = name.replace(/'/g,"\\'");
+  return `<div class="ban-slot"><img src="${bImg(name)}" title="${name}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'ban-fallback\\'>${safe.toUpperCase()}</div>')"></div>`;
 }
 function renderMatch(m,mapName){
   const dateLine=m.date?`<div class="match-date">${m.date}</div>`:'';
@@ -404,11 +418,11 @@ function renderMatch(m,mapName){
       <div class="team-container right"><div class="team-name team-red">${m.red}</div></div>
     </div>
     <div class="draft-container">
-      <div class="bans-stack">${renderBan(m.ban2_1)}${renderBan(m.ban2_2)}${renderBan(m.ban2_3)}</div>
-      <div class="picks-stack">${renderPick(m.pick2,'blue','2')}${renderPick(m.pick3,'blue','3')}${renderPick(m.pick6,'blue','6')}</div>
-      <div class="map-preview"><img src="${mImg(mapName)}" onerror="this.style.opacity='.1'"></div>
-      <div class="picks-stack">${renderPick(m.pick1,'red','1')}${renderPick(m.pick4,'red','4')}${renderPick(m.pick5,'red','5')}</div>
       <div class="bans-stack">${renderBan(m.ban1_1)}${renderBan(m.ban1_2)}${renderBan(m.ban1_3)}</div>
+      <div class="picks-stack">${renderPick(m.pick1,'blue','1')}${renderPick(m.pick4,'blue','4')}${renderPick(m.pick5,'blue','5')}</div>
+      <div class="map-preview"><img src="${mImg(mapName)}" onerror="this.style.opacity='.1'"></div>
+      <div class="picks-stack">${renderPick(m.pick2,'red','2')}${renderPick(m.pick3,'red','3')}${renderPick(m.pick6,'red','6')}</div>
+      <div class="bans-stack">${renderBan(m.ban2_1)}${renderBan(m.ban2_2)}${renderBan(m.ban2_3)}</div>
     </div>
   </div>`;
 }
@@ -425,11 +439,11 @@ function renderUglyMatch(m){
     <div class="ugly-score-col"><span style="${bc}">${vb}</span><span style="color:var(--dim);margin:0 2px;font-size:.8em">–</span><span style="${rc}">${vr}</span></div>
     <div class="ugly-team team-red">${m.red}</div>
     <div class="ugly-vsep"></div>
-    ${uglyGroup('BAN1',m.ban2_1,'ban')}${uglyGroup('BAN2',m.ban2_2,'ban')}${uglyGroup('BAN3',m.ban2_3,'ban')}
-    <div class="ugly-vsep"></div>
     ${uglyGroup('BAN1',m.ban1_1,'ban')}${uglyGroup('BAN2',m.ban1_2,'ban')}${uglyGroup('BAN3',m.ban1_3,'ban')}
     <div class="ugly-vsep"></div>
-    ${uglyGroup('Pick1',m.pick1,'pick-r')}${uglyGroup('Pick2',m.pick2,'pick-b')}${uglyGroup('Pick3',m.pick3,'pick-b')}${uglyGroup('Pick4',m.pick4,'pick-r')}${uglyGroup('Pick5',m.pick5,'pick-r')}${uglyGroup('Pick6',m.pick6,'pick-b')}
+    ${uglyGroup('BAN1',m.ban2_1,'ban')}${uglyGroup('BAN2',m.ban2_2,'ban')}${uglyGroup('BAN3',m.ban2_3,'ban')}
+    <div class="ugly-vsep"></div>
+    ${uglyGroup('Pick1',m.pick1,'pick-b')}${uglyGroup('Pick2',m.pick2,'pick-r')}${uglyGroup('Pick3',m.pick3,'pick-r')}${uglyGroup('Pick4',m.pick4,'pick-b')}${uglyGroup('Pick5',m.pick5,'pick-b')}${uglyGroup('Pick6',m.pick6,'pick-r')}
   </div>`;
 }
 

@@ -28,7 +28,7 @@ LOGIN_HTML = '''<!DOCTYPE html>
   .err{color:#e25555;margin-bottom:.75rem;font-size:.9rem}
 </style></head>
 <body><div class="box">
-  <h2>nikou</h2>
+  <h2>Login</h2>
   {% if error %}<div class="err">Wrong password</div>{% endif %}
   <form method="post">
     <input type="password" name="password" placeholder="Password" autofocus>
@@ -267,6 +267,21 @@ def upload():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
+@app.route('/api/brawlers')
+@login_required
+def get_brawlers():
+    brawlers_dir = os.path.join(BASE_DIR, 'brawlers')
+    try:
+        names = []
+        for f in sorted(os.listdir(brawlers_dir)):
+            if f.lower().endswith('.png'):
+                name = f[:-4].replace('_', ' ').title()
+                names.append(name)
+        return jsonify(names)
+    except FileNotFoundError:
+        return jsonify([])
+
+
 @app.route('/api/prep-state', methods=['GET'])
 @login_required
 def get_prep_state():
@@ -288,9 +303,8 @@ def save_prep_state():
 @app.route('/prep')
 @login_required
 def prep():
-    all_brawlers, maps_by_mode, meta_scores, synergy_data, matchup_data = compute_stats()
+    _, maps_by_mode, meta_scores, synergy_data, matchup_data = compute_stats()
     return render_template('prep.html',
-        all_brawlers=all_brawlers,
         maps_by_mode=maps_by_mode,
         meta_scores=meta_scores,
         synergy_data=synergy_data,

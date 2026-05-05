@@ -297,7 +297,7 @@
         color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem;
         box-sizing: border-box; font-family: 'Barlow Condensed', sans-serif; flex-shrink: 0;
     }
-    .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); grid-auto-rows: 52px; gap: 5px; padding: 0 14px 14px; overflow-y: auto; flex: 1; align-content: start; }
+    .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); grid-auto-rows: 60px; gap: 6px; padding: 0 14px 14px; overflow-y: auto; flex: 1; align-content: start; }
     .picker-item { aspect-ratio: 1; overflow: hidden; cursor: pointer; opacity: 0.8; transition: 0.1s; border-radius: 8px; }
     .picker-item:hover { opacity: 1; transform: scale(1.06); }
     .picker-item img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 8px; }
@@ -363,11 +363,18 @@
 </div>
 
 <script>
-const ALL_BRAWLERS = {{ all_brawlers | tojson }};
+let ALL_BRAWLERS = [];
 const SYNERGY = {{ synergy_data | default({}) | tojson }};
 const META = {{ meta_scores | default({}) | tojson }};
 const MATCHUP = {{ matchup_data | default({}) | tojson }};
 const MAPS_BY_MODE = {{ maps_by_mode | tojson }};
+
+async function loadBrawlersFromFolder() {
+    try {
+        const res = await fetch('/api/brawlers');
+        ALL_BRAWLERS = await res.json();
+    } catch(e) {}
+}
 
 const NUM_BOXES = 6;
 const NUM_GLOBAL_BANS = 3;
@@ -684,6 +691,7 @@ async function loadFromServer() {
 }
 
 window.onload = async () => {
+    await loadBrawlersFromFolder();
     await loadFromServer();
     buildSidebar();
     document.getElementById('coinImg').src = state.firstPick === 'blue' ? '/blue.png' : '/red.png';
