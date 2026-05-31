@@ -285,6 +285,109 @@
     /* in-use */
     .in-use { opacity: 0.2 !important; pointer-events: none; filter: grayscale(1); }
 
+    /* ── Coin-area action row ── */
+    .coin-action-row {
+        display: flex; align-items: center; gap: 10px;
+    }
+    .coin-action-btn {
+        background: var(--card2); color: var(--dim2);
+        border: 1px solid var(--line); border-radius: 8px; padding: 7px 13px;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        cursor: pointer; display: flex; align-items: center; gap: 6px;
+        transition: opacity 0.18s, border-color 0.18s;
+        flex-shrink: 0;
+    }
+    .coin-action-btn:hover { opacity: 0.75; }
+    .coin-action-btn.danger { border-color: rgba(255,77,77,.35); color: var(--red); }
+    .coin-action-btn.danger:hover { border-color: rgba(255,77,77,.7); opacity: 1; }
+    .history-badge {
+        background: var(--blue); color: #000;
+        border-radius: 10px; padding: 1px 6px; font-size: 0.6rem; font-weight: 900;
+    }
+
+    /* History modal */
+    .history-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; }
+    .history-overlay.open { display: flex; }
+    .history-modal {
+        background: var(--card); border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
+        width: min(95vw, 820px); max-height: 86vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .history-modal-header {
+        padding: 14px 18px; border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; justify-content: space-between;
+        font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0;
+    }
+    .history-modal-close { background: none; border: none; color: var(--dim2); cursor: pointer; font-size: 1.1rem; }
+    .history-list { overflow-y: auto; flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .history-empty { color: var(--dim); font-size: 0.8rem; text-align: center; padding: 36px 0; }
+
+    /* ── Mini draft preview ── */
+    .history-entry {
+        background: var(--card2); border: 1px solid var(--line); border-radius: 12px;
+        overflow: hidden;
+    }
+    .history-entry-topbar {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 12px; border-bottom: 1px solid var(--line);
+        background: rgba(255,255,255,.02);
+    }
+    .history-entry-map { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; flex: 1; }
+    .history-entry-mode { font-size: 0.62rem; color: var(--blue); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .history-entry-time { font-size: 0.6rem; color: var(--dim); }
+    .history-entry-actions { display: flex; gap: 6px; align-items: center; }
+    .history-restore-btn {
+        background: rgba(93,176,255,.12); color: var(--blue);
+        border: 1px solid rgba(93,176,255,.3); border-radius: 6px;
+        padding: 4px 10px; font-family: 'Barlow Condensed', sans-serif;
+        font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        cursor: pointer; transition: background 0.15s;
+    }
+    .history-restore-btn:hover { background: rgba(93,176,255,.22); }
+    .history-del-btn {
+        background: none; border: none; color: var(--dim); cursor: pointer;
+        font-size: 0.95rem; padding: 3px 5px; transition: color 0.15s;
+    }
+    .history-del-btn:hover { color: var(--red); }
+
+    /* mini draft grid */
+    .mini-draft {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 1px; background: var(--line); padding: 0;
+    }
+    .mini-box {
+        display: flex; gap: 6px; align-items: center;
+        padding: 6px 10px; background: var(--card2);
+    }
+    .mini-main {
+        width: 40px; height: 40px; border-radius: 6px; border: 1px solid #222; background: #000;
+        overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .mini-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mini-main .mini-empty { width: 14px; height: 14px; border-radius: 3px; border: 1px dashed #333; }
+    .mini-slots { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .mini-row { display: flex; gap: 3px; }
+    .mini-slot {
+        width: 16px; height: 16px; border-radius: 3px; border: 1px solid #222; background: #000;
+        overflow: hidden; flex-shrink: 0;
+    }
+    .mini-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mini-slot.empty { border-style: dashed; border-color: #2a2a2a; }
+
+    /* mini bans row */
+    .mini-bans {
+        display: flex; align-items: center; gap: 5px;
+        padding: 5px 10px; border-top: 1px solid var(--line);
+    }
+    .mini-bans-label { font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--dim); margin-right: 2px; }
+    .mini-ban-slot {
+        width: 22px; height: 22px; border-radius: 4px; border: 1px solid #222; background: #000;
+        overflow: hidden; flex-shrink: 0; filter: grayscale(1) brightness(.85);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .mini-ban-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mini-ban-slot.empty { border-style: dashed; border-color: #2a2a2a; filter: none; }
+
     /* ── Picker Modal ── */
     .picker-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; }
     .picker-overlay.open { display: flex; }
@@ -331,11 +434,17 @@
             <div class="draft-col" id="draftColLeft"></div>
 
             <div class="centre-panel">
-                <button class="coin-btn" id="coinBtn" onclick="toggleFirstPick()" title="Click to switch first pick side">
-                    <div class="coin-inner" id="coinInner">
-                        <img id="coinImg" src="/blue.png" onerror="this.style.background='#5db0ff'">
-                    </div>
-                </button>
+                <div class="coin-action-row">
+                    <button class="coin-action-btn" onclick="openHistory()" title="View history">
+                        ⏱ History <span class="history-badge" id="historyBadge" style="display:none">0</span>
+                    </button>
+                    <button class="coin-btn" id="coinBtn" onclick="toggleFirstPick()" title="Click to switch first pick side">
+                        <div class="coin-inner" id="coinInner">
+                            <img id="coinImg" src="/blue.png" onerror="this.style.background='#5db0ff'">
+                        </div>
+                    </button>
+                    <button class="coin-action-btn danger" onclick="clearBrawlers()" title="Clear brawlers and save to history">✕ Clear</button>
+                </div>
                 <div class="map-display">
                     <img id="centreMapImg" src="" alt="" onerror="this.style.display='none'">
                 </div>
@@ -347,6 +456,17 @@
 
             <div class="draft-col" id="draftColRight"></div>
         </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="history-overlay" id="historyOverlay" onclick="closeHistoryIfOutside(event)">
+    <div class="history-modal">
+        <div class="history-modal-header">
+            <span>Cleared History</span>
+            <button class="history-modal-close" onclick="closeHistory()">✕</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
     </div>
 </div>
 
@@ -690,9 +810,163 @@ async function loadFromServer() {
     } catch(e) {}
 }
 
+let prepHistory = [];
+
+async function loadHistory() {
+    try {
+        const res = await fetch('/api/prep-history');
+        prepHistory = await res.json();
+        updateHistoryBadge();
+    } catch(e) {}
+}
+
+function updateHistoryBadge() {
+    const badge = document.getElementById('historyBadge');
+    if (prepHistory.length > 0) {
+        badge.textContent = prepHistory.length;
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+async function clearBrawlers() {
+    const allBrawlers = [
+        ...state.globalBans.filter(Boolean),
+        ...state.boxes.flatMap(b => [b.main, ...b.picks, ...b.responses].filter(Boolean))
+    ];
+    if (!allBrawlers.length) return;
+
+    const entry = {
+        map: state.selectedMap || '(no map)',
+        mode: state.selectedMode || '',
+        firstPick: state.firstPick,
+        globalBans: [...state.globalBans],
+        boxes: state.boxes.map(b => ({ main: b.main, picks: [...b.picks], responses: [...b.responses] }))
+    };
+
+    try {
+        const res = await fetch('/api/prep-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
+        });
+        const d = await res.json();
+        entry.id = d.id;
+        entry.savedAt = new Date().toISOString();
+        prepHistory.unshift(entry);
+        updateHistoryBadge();
+    } catch(e) {}
+
+    state.globalBans = Array(NUM_GLOBAL_BANS).fill(null);
+    state.boxes = freshBoxes();
+    saveToServer();
+    renderDraftGrid();
+}
+
+function openHistory() {
+    renderHistoryList();
+    document.getElementById('historyOverlay').classList.add('open');
+}
+
+function closeHistory() {
+    document.getElementById('historyOverlay').classList.remove('open');
+}
+
+function closeHistoryIfOutside(e) {
+    if (e.target === document.getElementById('historyOverlay')) closeHistory();
+}
+
+function miniSlot(name) {
+    if (name) return `<div class="mini-slot"><img src="/static/images/brawlers/${norm(name)}.png" onerror="this.style.opacity='.15'"></div>`;
+    return `<div class="mini-slot empty"></div>`;
+}
+
+function renderHistoryList() {
+    const list = document.getElementById('historyList');
+    if (!prepHistory.length) {
+        list.innerHTML = '<div class="history-empty">No history yet. Clear some brawlers to save them here.</div>';
+        return;
+    }
+    list.innerHTML = '';
+    prepHistory.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        const time = entry.savedAt ? new Date(entry.savedAt).toLocaleString() : '';
+        const boxes = entry.boxes || Array.from({length: 6}, () => ({main:null, picks:[null,null,null,null], responses:[null,null,null,null]}));
+        const bansHtml = (entry.globalBans || []).map(b =>
+            b ? `<div class="mini-ban-slot"><img src="/static/images/brawlers/${norm(b)}.png" onerror="this.style.opacity='.15'"></div>`
+              : `<div class="mini-ban-slot empty"></div>`
+        ).join('');
+        const boxesHtml = boxes.map(b => `
+            <div class="mini-box">
+                <div class="mini-main">
+                    ${b.main ? `<img src="/static/images/brawlers/${norm(b.main)}.png" onerror="this.style.opacity='.15'">` : `<div class="mini-empty"></div>`}
+                </div>
+                <div class="mini-slots">
+                    <div class="mini-row">${(b.picks||[null,null,null,null]).map(miniSlot).join('')}</div>
+                    <div class="mini-row">${(b.responses||[null,null,null,null]).map(miniSlot).join('')}</div>
+                </div>
+            </div>`).join('');
+        div.innerHTML = `
+            <div class="history-entry-topbar">
+                <div class="history-entry-map">${entry.map}</div>
+                ${entry.mode ? `<div class="history-entry-mode">${entry.mode}</div>` : ''}
+                <div class="history-entry-time">${time}</div>
+                <div class="history-entry-actions">
+                    <button class="history-restore-btn" onclick="restoreHistoryEntry('${entry.id}')">↩ Load</button>
+                    <button class="history-del-btn" onclick="deleteHistoryEntry('${entry.id}')" title="Delete permanently">🗑</button>
+                </div>
+            </div>
+            <div class="mini-draft">${boxesHtml}</div>
+            <div class="mini-bans"><span class="mini-bans-label">Bans</span>${bansHtml}</div>`;
+        list.appendChild(div);
+    });
+}
+
+function restoreHistoryEntry(id) {
+    const entry = prepHistory.find(e => e.id === id);
+    if (!entry) return;
+    saveCurrentMapState();
+    state.globalBans = [...(entry.globalBans || Array(NUM_GLOBAL_BANS).fill(null))];
+    state.boxes = (entry.boxes || freshBoxes()).map(b => ({
+        main: b.main, picks: [...(b.picks||[null,null,null,null])], responses: [...(b.responses||[null,null,null,null])]
+    }));
+    if (entry.map && entry.map !== '(no map)') {
+        state.selectedMap = entry.map;
+        state.selectedMode = entry.mode || '';
+        const imgSlug = entry.map.toLowerCase().replace(/ /g,'_').replace(/-/g,'_');
+        const mapPath = `/static/images/maps/${imgSlug}.png`;
+        document.getElementById('activeMapImg').src = mapPath;
+        document.getElementById('activeMapImg').style.display = '';
+        document.getElementById('centreMapImg').src = mapPath;
+        document.getElementById('centreMapImg').style.display = '';
+        document.getElementById('activeMapName').textContent = entry.map;
+        document.getElementById('activeModeName').textContent = entry.mode || '';
+        const modeIconEl = document.getElementById('activeModeIcon');
+        modeIconEl.style.display = 'block';
+        modeIconEl.src = `/static/images/modes/${(entry.mode||'').toLowerCase().replace(/ /g,'_')}.png`;
+        document.querySelectorAll('.map-item').forEach(el =>
+            el.classList.toggle('active', el.dataset.mode === entry.mode && el.dataset.map === entry.map));
+    }
+    saveToServer();
+    renderDraftGrid();
+    closeHistory();
+}
+
+async function deleteHistoryEntry(id) {
+    try {
+        await fetch(`/api/prep-history/${id}`, { method: 'DELETE' });
+    } catch(e) {}
+    prepHistory = prepHistory.filter(e => e.id !== id);
+    updateHistoryBadge();
+    renderHistoryList();
+}
+
 window.onload = async () => {
     await loadBrawlersFromFolder();
     await loadFromServer();
+    await loadHistory();
     buildSidebar();
     document.getElementById('coinImg').src = state.firstPick === 'blue' ? '/blue.png' : '/red.png';
     if (state.selectedMap) {

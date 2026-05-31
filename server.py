@@ -13,6 +13,7 @@ SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'nikouisgay')
 DATA_DIR = '/tmp' if os.environ.get('RENDER') else BASE_DIR
 DATA_FILE = os.path.join(DATA_DIR, 'data.json')
 PREP_STATE_FILE = os.path.join(DATA_DIR, 'prep_state.json')
+PREP_HISTORY_FILE = os.path.join(DATA_DIR, 'prep_history.json')
 SKIP_SHEETS = {'EXEMPLE', 'Flipper', 'last stop'}
 
 LOGIN_HTML = '''<!DOCTYPE html>
@@ -71,12 +72,12 @@ MAP_MODES = {
     'triple dribble': 'Brawl Ball', 'sunny soccer': 'Brawl Ball', 'sneaky fields': 'Brawl Ball',
     'pinball dreams': 'Brawl Ball',
     'hard rock mine': 'Gem Grab', 'double swoosh': 'Gem Grab', 'deathcap trap': 'Gem Grab',
-    'undermine': 'Gem Grab', 'gem fort': 'Gem Grab',
+    'undermine': 'Gem Grab', 'gem fort': 'Gem Grab', 'gemme fort': 'Gem Grab', 'crystal arcade': 'Gem Grab',
     'safe zone': 'Heist', 'kaboom canyon': 'Heist', 'bridge too far': 'Heist',
     'hot potato': 'Heist', 'pit stop': 'Heist',
     'open business': 'Hot Zone', 'dueling beetles': 'Hot Zone', 'ring of fire': 'Hot Zone',
     'goldarm gulch': 'Knockout', 'belles rock': 'Knockout', 'out in the open': 'Knockout',
-    'hideout': 'Knockout',
+    'hideout': 'Knockout', 'new horizon': 'Knockout', 'new horizons': 'Knockout',
 }
 
 
@@ -300,10 +301,62 @@ def save_prep_state():
     return jsonify({'ok': True})
 
 
+@app.route('/api/prep-history', methods=['GET'])
+@login_required
+def get_prep_history():
+    if not os.path.exists(PREP_HISTORY_FILE):
+        return jsonify([])
+    with open(PREP_HISTORY_FILE) as f:
+        return jsonify(json.load(f))
+
+
+@app.route('/api/prep-history', methods=['POST'])
+@login_required
+def add_prep_history():
+    entry = request.get_json()
+    history = []
+    if os.path.exists(PREP_HISTORY_FILE):
+        with open(PREP_HISTORY_FILE) as f:
+            history = json.load(f)
+    entry['id'] = secrets.token_hex(8)
+    entry['savedAt'] = datetime.now().isoformat()
+    history.insert(0, entry)
+    with open(PREP_HISTORY_FILE, 'w') as f:
+        json.dump(history, f)
+    return jsonify({'ok': True, 'id': entry['id']})
+
+
+@app.route('/api/prep-history/<entry_id>', methods=['DELETE'])
+@login_required
+def delete_prep_history(entry_id):
+    if not os.path.exists(PREP_HISTORY_FILE):
+        return jsonify({'ok': True})
+    with open(PREP_HISTORY_FILE) as f:
+        history = json.load(f)
+    history = [e for e in history if e.get('id') != entry_id]
+    with open(PREP_HISTORY_FILE, 'w') as f:
+        json.dump(history, f)
+    return jsonify({'ok': True})
+
+
 @app.route('/prep')
 @login_required
 def prep():
     _, maps_by_mode, meta_scores, synergy_data, matchup_data = compute_stats()
+    # Ensure maps are in correct modes regardless of data presence
+    EXTRA_MAPS = {
+        'Knockout': ['New Horizons', 'New Horizon'],
+        'Gem Grab': ['Crystal Arcade', 'Gemme Fort'],
+    }
+    for mode, maps in EXTRA_MAPS.items():
+        bucket = maps_by_mode.setdefault(mode, [])
+        for m in maps:
+            if m in bucket:
+                bucket.remove(m)
+            # Remove from Other if misclassified
+            if m in maps_by_mode.get('Other', []):
+                maps_by_mode['Other'].remove(m)
+            bucket.append(m)
     return render_template('prep.html',
         maps_by_mode=maps_by_mode,
         meta_scores=meta_scores,
